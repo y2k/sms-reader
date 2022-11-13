@@ -4,20 +4,20 @@ module SmsReaderApp =
     open System.Net
     module R = SmsReader.Lib.ScriptRunner
 
-    let main log =
+    let main (sms: Map<string, obj>) log =
         async {
-            let mutable lastCommand = ""
+            let mutable lastProgram = ""
 
             while true do
-                let! content =
+                let! programResp =
                     (new WebClient()).DownloadStringTaskAsync("http://192.168.0.102:8080/")
                     |> Async.AwaitTask
                     |> Async.Catch
 
-                match content with
-                | Choice1Of2 cmd when cmd <> lastCommand ->
-                    lastCommand <- cmd
-                    R.main cmd |> log
+                match programResp with
+                | Choice1Of2 program when program <> lastProgram ->
+                    lastProgram <- program
+                    R.main program sms |> log
                 | _ -> ()
 
                 do! Async.Sleep 1_000
@@ -47,41 +47,28 @@ type MainActivity() =
         base.OnCreate savedInstanceState
 
         let logTextView = new TextView(this)
+        logTextView.SetBackgroundColor(Android.Graphics.Color.Black)
+        logTextView.SetTextColor(Android.Graphics.Color.DarkSeaGreen)
         base.SetContentView(logTextView)
 
-        // let cursor =
-        //     base.ContentResolver.Query(Uri.Parse "content://sms/inbox", null, null, null, null)
+        // date_sent, subject, body, creator, seen, address, person, protocol, read, status, type, service_center
 
-        // let count = cursor.Count
+        let cursor =
+            base.ContentResolver.Query(Uri.Parse "content://sms/inbox", null, null, null, null)
 
-        // let result = cursor.GetColumnNames() |> Seq.reduce (sprintf "%s, %s")
+        let columnNames = cursor.GetColumnNames()
 
-        // let xs =
-        //     Seq.initInfinite (fun i ->
-        //         cursor.MoveToPosition i |> ignore
-        //         cursor)
+        cursor
+        |> Seq.unfold (fun cur ->
+            if cur.MoveToNext() then
+                let kv =
+                    columnNames
+                    |> Seq.map (fun k -> k, cur.GetString(cur.GetColumnIndexOrThrow(k)) |> box)
+                    |> Map.ofSeq
 
-        // // date_sent, subject, body, creator, seen
-        // // address, person, protocol, read, status, type, service_center
-
-        // let result =
-        //     xs
-        //     |> Seq.take 20
-        //     |> Seq.map (fun c ->
-        //         sprintf
-        //             "%s = %s"
-        //             (c.GetString(c.GetColumnIndex "address"))
-        //             (c.GetString(c.GetColumnIndex "service_center")))
-        //     |> Seq.reduce (sprintf "%s\n%s")
-        // // let result =
-        // //     xs
-        // //     |> Seq.take 1
-        // //     |> Seq.map (fun c ->
-        // //         c.GetColumnNames()
-        // //         |> Seq.map (fun n -> sprintf "%s = %s" n (c.GetString(c.GetColumnIndexOrThrow n)))
-        // //         |> Seq.reduce (sprintf "%s\n%s")
-        // //     )
-        // //     |> Seq.reduce (sprintf "%s\n%s")
-        // logTextView.Text <- result
-
-        SmsReaderApp.main (fun log -> logTextView.Text <- $"%s{logTextView.Text}%s{log}\n")
+                Some(kv, cur)
+            else
+                None)
+        |> Seq.truncate 3
+        |> Seq.iter (fun sms ->
+            SmsReaderApp.main sms (fun log -> logTextView.Text <- $"%s{log}\n======\n%s{logTextView.Text}"))

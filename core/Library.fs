@@ -5,7 +5,24 @@ module ScriptRunner =
 
     let private extFunctions =
         Map.ofList
-            [ "if",
+            [ "get",
+              (fun (args: (unit -> obj) list) ->
+                  let m: Map<string, obj> = args.[0] () |> unbox
+
+                  let key: string =
+                      match args.[1] () with
+                      | :? string as x -> x
+                      | :? RSexp as RSexp x ->
+                          if x.StartsWith "\"" then
+                              x.Substring(1, x.Length - 2)
+                          else
+                              x
+                      | x -> failwithf "can't resolve arg %A" x
+
+                  Map.tryFind key m
+                  |> Option.defaultWith (fun _ -> failwith $"{key} -> {m}")
+                  |> box)
+              "if",
               (fun (args: (unit -> obj) list) ->
                   let condition =
                       match args.[0] () with
@@ -26,12 +43,13 @@ module ScriptRunner =
                   let b = toInt args.[1]
                   a + b |> box) ]
 
-    let main (code: string) : string =
+    let main (code: string) (arg: Map<string, obj>) : string =
         code
         |> LanguageParser.compile
         |> mapToCoreLang
-        |> Interpreter.run extFunctions "main" []
-        |> function
-            | :? RSexp as (RSexp r) -> r
-            | :? int as r -> string r
-            | result -> failwithf "Unsupported result (%O) %O" result (result.GetType())
+        |> Interpreter.run extFunctions "main" [ arg ]
+        |> sprintf "%A"
+// |> function
+//     | :? RSexp as (RSexp r) -> r
+//     | :? int as r -> string r
+//     | result -> failwithf "Unsupported result (%O) %O" result (result.GetType())
