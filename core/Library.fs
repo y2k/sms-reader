@@ -3,53 +3,36 @@
 module ScriptRunner =
     open MetaLang
 
-    let private extFunctions =
-        Map.ofList
-            [ "get",
-              (fun (args: (unit -> obj) list) ->
-                  let m: Map<string, obj> = args.[0] () |> unbox
+    let private extFunctions interopFuncResolve (name: string) (argCount: int) =
+        if name.StartsWith "." then
+            interopFuncResolve name argCount |> Some
+        else
+            Map.ofList
+                [ "if",
+                  (fun (args: (unit -> obj) list) ->
+                      let condition =
+                          match args.[0] () with
+                          | :? bool as b -> b
+                          | :? RSexp as x -> let (RSexp x) = x in System.Boolean.Parse(x)
+                          | x -> failwithf "Can't parse '%O' to bool" x
 
-                  let key: string =
-                      match args.[1] () with
-                      | :? string as x -> x
-                      | :? RSexp as RSexp x ->
-                          if x.StartsWith "\"" then
-                              x.Substring(1, x.Length - 2)
-                          else
-                              x
-                      | x -> failwithf "can't resolve arg %A" x
+                      if condition then args.[1] () else args.[2] ())
+                  "+",
+                  (fun (args: (unit -> obj) list) ->
+                      let toInt (arg: (unit -> obj)) =
+                          match arg () with
+                          | :? int as x -> x
+                          | :? RSexp as x -> let (RSexp x) = x in int x
+                          | x -> failwithf "Can't parse '%O' to int" x
 
-                  Map.tryFind key m
-                  |> Option.defaultWith (fun _ -> failwith $"{key} -> {m}")
-                  |> box)
-              "if",
-              (fun (args: (unit -> obj) list) ->
-                  let condition =
-                      match args.[0] () with
-                      | :? bool as b -> b
-                      | :? RSexp as x -> let (RSexp x) = x in System.Boolean.Parse(x)
-                      | x -> failwithf "Can't parse '%O' to bool" x
+                      let a = toInt args.[0]
+                      let b = toInt args.[1]
+                      a + b |> box) ]
+            |> Map.tryFind name
 
-                  if condition then args.[1] () else args.[2] ())
-              "+",
-              (fun (args: (unit -> obj) list) ->
-                  let toInt (arg: (unit -> obj)) =
-                      match arg () with
-                      | :? int as x -> x
-                      | :? RSexp as x -> let (RSexp x) = x in int x
-                      | x -> failwithf "Can't parse '%O' to int" x
-
-                  let a = toInt args.[0]
-                  let b = toInt args.[1]
-                  a + b |> box) ]
-
-    let main (code: string) (arg: Map<string, obj>) : string =
+    let main interopFuncResolve (code: string) (arg: Map<string, obj>) : string =
         code
         |> LanguageParser.compile
         |> mapToCoreLang
-        |> Interpreter.run extFunctions "main" [ arg ]
+        |> Interpreter.run2 (extFunctions interopFuncResolve) "main" [ arg ]
         |> sprintf "%A"
-// |> function
-//     | :? RSexp as (RSexp r) -> r
-//     | :? int as r -> string r
-//     | result -> failwithf "Unsupported result (%O) %O" result (result.GetType())

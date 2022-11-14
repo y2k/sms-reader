@@ -3,6 +3,7 @@
 module SmsReaderApp =
     open System.Net
     module R = SmsReader.Lib.ScriptRunner
+    module RV = SmsReader.Common.ReflectionFunctionResolver
 
     let main (sms: Map<string, obj>) log =
         async {
@@ -17,7 +18,7 @@ module SmsReaderApp =
                 match programResp with
                 | Choice1Of2 program when program <> lastProgram ->
                     lastProgram <- program
-                    R.main program sms |> log
+                    R.main RV.resolve program sms |> log
                 | _ -> ()
 
                 do! Async.Sleep 1_000
@@ -39,22 +40,11 @@ open Android.App
 open Android.Widget
 open Android.Net
 
-[<Activity(Label = "@string/app_name", MainLauncher = true)>]
-type MainActivity() =
-    inherit Activity()
-
-    override this.OnCreate savedInstanceState =
-        base.OnCreate savedInstanceState
-
-        let logTextView = new TextView(this)
-        logTextView.SetBackgroundColor(Android.Graphics.Color.Black)
-        logTextView.SetTextColor(Android.Graphics.Color.DarkSeaGreen)
-        base.SetContentView(logTextView)
-
+module SmsClient =
+    let run (context: Activity) (logTextView: TextView) =
         // date_sent, subject, body, creator, seen, address, person, protocol, read, status, type, service_center
-
         let cursor =
-            base.ContentResolver.Query(Uri.Parse "content://sms/inbox", null, null, null, null)
+            context.ContentResolver.Query(Uri.Parse "content://sms/inbox", null, null, null, null)
 
         let columnNames = cursor.GetColumnNames()
 
@@ -71,4 +61,18 @@ type MainActivity() =
                 None)
         |> Seq.truncate 3
         |> Seq.iter (fun sms ->
-            SmsReaderApp.main sms (fun log -> logTextView.Text <- $"%s{log}\n======\n%s{logTextView.Text}"))
+            SmsReaderApp.main sms (fun log -> logTextView.Text <- $"%s{log}\n==================\n%s{logTextView.Text}"))
+
+[<Activity(Label = "@string/app_name", MainLauncher = true)>]
+type MainActivity() =
+    inherit Activity()
+
+    override this.OnCreate savedInstanceState =
+        base.OnCreate savedInstanceState
+
+        let logTextView = new TextView(this)
+        logTextView.SetBackgroundColor(Android.Graphics.Color.Black)
+        logTextView.SetTextColor(Android.Graphics.Color.DarkSeaGreen)
+        base.SetContentView(logTextView)
+
+        SmsClient.run this logTextView
