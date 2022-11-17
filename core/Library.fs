@@ -17,6 +17,14 @@ module ScriptRunner =
                           | x -> failwithf "Can't parse '%O' to bool" x
 
                       if condition then args.[1] () else args.[2] ())
+                  "first",
+                  (fun (args: (unit -> obj) list) ->
+                      let arg: obj list = args[0]() |> unbox
+                      List.tryHead arg |> Option.defaultValue null)
+                  "rest",
+                  (fun (args: (unit -> obj) list) ->
+                      let arg: obj list = args[0]() |> unbox
+                      List.tail arg |> box)
                   "+",
                   (fun (args: (unit -> obj) list) ->
                       let toInt (arg: (unit -> obj)) =

@@ -27,6 +27,8 @@ module ReflectionFunctionResolver =
 
                 if success then
                     Java.Lang.Object.op_Implicit i
+                else if v.StartsWith '"' && v.EndsWith '"' then
+                    Java.Lang.Object.op_Implicit (v.Substring(1, v.Length - 2))
                 else
                     failwith $"Can't parse RSexp arg = %A{v}"
             | :? int as i -> Java.Lang.Object.op_Implicit i
@@ -44,4 +46,5 @@ module ReflectionFunctionResolver =
         match result with
         | :? Java.Lang.String as x -> x.ToString() |> box
         | :? Java.Lang.Integer as x -> x.IntValue() |> box
-        | _ -> failwith $"Unsup return type {result.GetType()} ({result})"
+        | :? Java.Lang.Boolean as x -> x.BooleanValue() |> box
+        | _ -> failwith $"Unsupported return type {result.GetType()} ({result})"

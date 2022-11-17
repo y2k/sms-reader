@@ -11,7 +11,8 @@ module SmsReaderApp =
 
             while true do
                 let! programResp =
-                    (new WebClient()).DownloadStringTaskAsync("http://192.168.0.102:8080/")
+                    // (new WebClient()).DownloadStringTaskAsync("http://192.168.0.102:8080/")
+                    (new WebClient()).DownloadStringTaskAsync("http://192.168.137.162:8080/")
                     |> Async.AwaitTask
                     |> Async.Catch
 
