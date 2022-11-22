@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "26133174355",
+    "project_id": "translateapp-846d1",
+    "storage_bucket": "translateapp-846d1.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:26133174355:android:cf5d1e02785152c61d8ea6",
+        "android_client_info": {
+          "package_name": "com.example.myapplication"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "26133174355-se5rj7inp9hbejjkvp9eipfgbreln1oh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDdjfJW1fxs87xxyrOGkR-pP55_JpJe_oY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "26133174355-se5rj7inp9hbejjkvp9eipfgbreln1oh.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:26133174355:android:01e495dad18b17fa1d8ea6",
+        "android_client_info": {
+          "package_name": "work.y2k.sms_reader"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "26133174355-se5rj7inp9hbejjkvp9eipfgbreln1oh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDdjfJW1fxs87xxyrOGkR-pP55_JpJe_oY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "26133174355-se5rj7inp9hbejjkvp9eipfgbreln1oh.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

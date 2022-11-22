@@ -40,6 +40,8 @@ module SmsReaderApp =
 open Android.App
 open Android.Widget
 open Android.Net
+open Android.Content
+open Android.Gms.Common
 
 module SmsClient =
     let run (context: Activity) (logTextView: TextView) =
@@ -64,6 +66,52 @@ module SmsClient =
         |> Seq.iter (fun sms ->
             SmsReaderApp.main sms (fun log -> logTextView.Text <- $"%s{log}\n==================\n%s{logTextView.Text}"))
 
+module TranslateSample =
+    // open Firebase.ML.NaturalLanguage
+    // open Firebase.ML.NaturalLanguage.Translate
+    open Android.Gms.Extensions
+    open Xamarin.Google.MLKit.NL.Translate
+
+    let main log =
+        task {
+            log "Started..."
+
+            let b = new TranslatorOptions.Builder()
+            let b = b.SetSourceLanguage("KA")
+            let b = b.SetTargetLanguage("RU")
+
+            log "GetClient..."
+            let client = Translation.GetClient(b.Build())
+
+            log "DownloadModelIfNeeded..."
+            do! client.DownloadModelIfNeeded().AsAsync()
+
+            log "Translate..."
+            let rt = client.Translate("გამარჯობა მსოფლიო")
+            do! rt.AsAsync()
+            let result = rt.Result.ToString()
+
+            // let b = new FirebaseTranslatorOptions.Builder()
+            // b.SetSourceLanguage(FirebaseTranslateLanguage.Ka) |> ignore
+            // b.SetTargetLanguage(FirebaseTranslateLanguage.Ru) |> ignore
+
+            // log "Build..."
+            // let opt = b.Build()
+
+            // log "GetTranslator..."
+            // let t = FirebaseNaturalLanguage.Instance.GetTranslator(opt)
+
+            // log "DownloadModelIfNeeded..."
+            // do! t.DownloadModelIfNeeded().AsAsync()
+
+            // log "Translate..."
+            // let tr = t.Translate("გამარჯობა მსოფლიო")
+            // do! tr.AsAsync()
+            // let result = (tr.Result :?> Java.Lang.String).ToString()
+
+            log result
+        }
+
 [<Activity(Label = "@string/app_name", MainLauncher = true)>]
 type MainActivity() =
     inherit Activity()
@@ -76,4 +124,23 @@ type MainActivity() =
         logTextView.SetTextColor(Android.Graphics.Color.DarkSeaGreen)
         base.SetContentView(logTextView)
 
-        SmsClient.run this logTextView
+        // let setSmsAppIntent = new Intent("android.provider.Telephony.ACTION_CHANGE_DEFAULT")
+        // setSmsAppIntent.PutExtra("package", "work.y2k.sms_reader") |> ignore
+        // this.StartActivityForResult(setSmsAppIntent, 1)
+
+        // let active = GoogleApiAvailability.Instance.IsGooglePlayServicesAvailable(this)
+        // logTextView.Text <- sprintf "result = %O" active
+        // ConnectionResult.Success
+
+        // SmsClient.run this logTextView
+        TranslateSample.main (fun r -> logTextView.Text <- r) |> ignore
+        ()
+
+[<BroadcastReceiver(Enabled = true, Exported = false, Permission = "android.permission.BROADCAST_SMS")>]
+[<IntentFilter([| "android.provider.Telephony.SMS_RECEIVED"
+                  "android.provider.Telephony.SMS_DELIVER" |])>]
+type SmsReceiver() =
+    inherit BroadcastReceiver()
+
+    override _.OnReceive(context, _intent) =
+        Toast.MakeText(context, "TEST", ToastLength.Long).Show()
