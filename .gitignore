@@ -2,3 +2,4 @@ bin/
 obj/
 playground/
 TestResults/
+google-services.json

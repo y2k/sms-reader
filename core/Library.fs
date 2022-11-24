@@ -42,6 +42,8 @@ module ScriptRunner =
                       a + b |> box) ]
             |> Map.tryFind name
 
+    open System.Threading.Tasks
+
     let rec main translate interopFuncResolve (code: string) fmain (arg: obj) =
         task {
             let result =
@@ -51,23 +53,30 @@ module ScriptRunner =
                 |> Interpreter.run2 (extFunctions interopFuncResolve) fmain [ arg ]
 
             match result with
-            | :? Map<string, obj> as dic when Map.containsKey "translate" dic ->
-                // let r = dic["translate"] :?> Map<string, obj>
-                let r =
-                    match Map.tryFind "translate" dic with
-                    | Some (:? Map<string, obj> as x) -> x
-                    | e -> failwithf "Can't find %O in %A" e dic
+            | :? Map<string, obj> as dic ->
+                let! result =
+                    dic
+                    |> Map.toSeq
+                    |> Seq.map (fun (k, v) ->
+                        match k, v with
+                        | "translate", (:? Map<string, obj> as r) ->
+                            task {
+                                let body = r["body"] :?> string
 
-                let body = r["body"] :?> string
+                                let callback =
+                                    match r["callback"] with
+                                    | :? RSexp as (RSexp x) -> x
+                                    | e -> failwithf "%A" e
 
-                let callback =
-                    match r["callback"] with
-                    | :? RSexp as (RSexp x) -> x
-                    | e -> failwithf "%A" e
+                                let! (translateResult: string) = translate body
+                                return! main translate interopFuncResolve code callback translateResult
+                            }
+                        | "log", _ -> Task.FromResult(box $"%A{v}")
+                        | _ -> Task.FromResult(box ())
 
-                let! (translateResult: string) = translate body
+                    )
+                    |> Task.WhenAll
 
-                return! main translate interopFuncResolve code callback translateResult
-            // return translateResult |> box
-            | r -> return r |> box
+                return sprintf "%A" result |> box
+            | r -> return box r
         }
