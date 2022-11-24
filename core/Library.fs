@@ -25,6 +25,10 @@ module ScriptRunner =
                   (fun (args: (unit -> obj) list) ->
                       let arg: obj list = args[0]() |> unbox
                       List.tail arg |> box)
+                  "empty?",
+                  (fun (args: (unit -> obj) list) ->
+                      let arg: obj list = args[0]() |> unbox
+                      List.isEmpty arg |> box)
                   "+",
                   (fun (args: (unit -> obj) list) ->
                       let toInt (arg: (unit -> obj)) =
@@ -38,9 +42,32 @@ module ScriptRunner =
                       a + b |> box) ]
             |> Map.tryFind name
 
-    let main interopFuncResolve (code: string) (arg: Map<string, obj>) : string =
-        code
-        |> LanguageParser.compile
-        |> mapToCoreLang
-        |> Interpreter.run2 (extFunctions interopFuncResolve) "main" [ arg ]
-        |> sprintf "%A"
+    let rec main translate interopFuncResolve (code: string) fmain (arg: obj) =
+        task {
+            let result =
+                code
+                |> LanguageParser.compile
+                |> mapToCoreLang
+                |> Interpreter.run2 (extFunctions interopFuncResolve) fmain [ arg ]
+
+            match result with
+            | :? Map<string, obj> as dic when Map.containsKey "translate" dic ->
+                // let r = dic["translate"] :?> Map<string, obj>
+                let r =
+                    match Map.tryFind "translate" dic with
+                    | Some (:? Map<string, obj> as x) -> x
+                    | e -> failwithf "Can't find %O in %A" e dic
+
+                let body = r["body"] :?> string
+
+                let callback =
+                    match r["callback"] with
+                    | :? RSexp as (RSexp x) -> x
+                    | e -> failwithf "%A" e
+
+                let! (translateResult: string) = translate body
+
+                return! main translate interopFuncResolve code callback translateResult
+            // return translateResult |> box
+            | r -> return r |> box
+        }

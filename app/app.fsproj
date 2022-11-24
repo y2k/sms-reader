@@ -25,13 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Xamarin.Firebase.ML.Natural.Language" Version="122.0.1.7" />
-    <PackageReference Include="Xamarin.Firebase.ML.Natural.Language.Translate" Version="122.0.2.7" />
     <PackageReference Include="Xamarin.Google.MLKit.Translate" Version="117.0.1" />
-    <PackageReference Include="Xamarin.GooglePlayServices.Base" Version="118.1.0" />
-    <PackageReference Include="Xamarin.GooglePlayServices.Basement" Version="118.1.0" />
-    <PackageReference Include="Xamarin.GooglePlayServices.Gcm" Version="117.0.0.7" />
-    <PackageReference Include="Xamarin.GooglePlayServices.Tasks" Version="118.0.2" />
   </ItemGroup>
 
 </Project>
