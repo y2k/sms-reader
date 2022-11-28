@@ -1,5 +1,15 @@
 ﻿namespace SmsReader.Lib
 
+module TelegramEffect =
+    open Telegram.Bot
+
+    let send (token: string) (user: string) message =
+        task {
+            let client = TelegramBotClient token
+            let! _ = client.SendTextMessageAsync(user, message)
+            return ()
+        }
+
 module ScriptRunner =
     open MetaLang
 
@@ -44,13 +54,19 @@ module ScriptRunner =
 
     open System.Threading.Tasks
 
+    let private getString (r: Map<string, obj>) (key: string) =
+        match r[key] with
+        | :? RSexp as (RSexp x) when x.StartsWith "\"" -> x.Substring(1, x.Length - 2)
+        | :? string as x -> x
+        | e -> failwithf "Can't parse '%A' to string" e
+
     let rec main translate interopFuncResolve (code: string) fmain (arg: obj) =
         task {
             let result =
                 code
                 |> LanguageParser.compile
                 |> mapToCoreLang
-                |> Interpreter.run2 (extFunctions interopFuncResolve) fmain [ arg ]
+                |> Interpreter.run2 (extFunctions interopFuncResolve) fmain [ Map.empty; arg ]
 
             match result with
             | :? Map<string, obj> as dic ->
@@ -59,6 +75,15 @@ module ScriptRunner =
                     |> Map.toSeq
                     |> Seq.map (fun (k, v) ->
                         match k, v with
+                        | "telegram", (:? Map<string, obj> as r) ->
+                            let token = getString r "token"
+                            let user = getString r "user"
+                            let message = getString r "message"
+
+                            task {
+                                let! _ = TelegramEffect.send token user message
+                                return box ()
+                            }
                         | "translate", (:? Map<string, obj> as r) ->
                             task {
                                 let body = r["body"] :?> string
@@ -72,9 +97,7 @@ module ScriptRunner =
                                 return! main translate interopFuncResolve code callback translateResult
                             }
                         | "log", _ -> Task.FromResult(box $"%A{v}")
-                        | _ -> Task.FromResult(box ())
-
-                    )
+                        | eff -> Task.FromResult(box $"Unknown effect %A{eff}"))
                     |> Task.WhenAll
 
                 return sprintf "%A" result |> box
