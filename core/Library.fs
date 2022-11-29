@@ -31,6 +31,12 @@ module ScriptRunner =
                   (fun (args: (unit -> obj) list) ->
                       let arg: obj list = args[0]() |> unbox
                       List.tryHead arg |> Option.defaultValue null)
+                  "reduce",
+                  (fun (args: (unit -> obj) list) ->
+                      let f: obj list -> obj = args[0]() |> unbox
+                      let init: obj = args[1]()
+                      let collection: obj seq = args[2]() |> unbox
+                      Seq.fold (fun a x -> f [ a; x ]) init collection |> box)
                   "rest",
                   (fun (args: (unit -> obj) list) ->
                       let arg: obj list = args[0]() |> unbox
