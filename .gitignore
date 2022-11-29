@@ -3,3 +3,4 @@ obj/
 playground/
 TestResults/
 google-services.json
+.DS_Store
