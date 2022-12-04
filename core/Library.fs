@@ -58,21 +58,25 @@ module ScriptRunner =
                       a + b |> box) ]
             |> Map.tryFind name
 
-    open System.Threading.Tasks
-
-    let private getString (r: Map<string, obj>) (key: string) =
-        match r[key] with
+    let parseString (value: obj) : string =
+        match value with
         | :? RSexp as (RSexp x) when x.StartsWith "\"" -> x.Substring(1, x.Length - 2)
         | :? string as x -> x
         | e -> failwithf "Can't parse '%A' to string" e
 
+    let private getString (r: Map<string, obj>) (key: string) = parseString r[key]
+
+    let executeCode interopFuncResolve code fmain args =
+        code
+        |> LanguageParser.compile
+        |> mapToCoreLang
+        |> Interpreter.run2 (extFunctions interopFuncResolve) fmain args
+
+    open System.Threading.Tasks
+
     let rec main translate interopFuncResolve (code: string) fmain (arg: obj) =
         task {
-            let result =
-                code
-                |> LanguageParser.compile
-                |> mapToCoreLang
-                |> Interpreter.run2 (extFunctions interopFuncResolve) fmain [ Map.empty; arg ]
+            let result = executeCode interopFuncResolve code fmain [ Map.empty; arg ]
 
             match result with
             | :? Map<string, obj> as dic ->
@@ -109,3 +113,19 @@ module ScriptRunner =
                 return sprintf "%A" result |> box
             | r -> return box r
         }
+
+module ConfigParse =
+    open System.IO
+    open System.Reflection
+
+    let private readConfig () =
+        let assembly = Assembly.GetExecutingAssembly()
+        use stream = assembly.GetManifestResourceStream("app.Resources.config.edn")
+        (new StreamReader(stream)).ReadToEnd()
+
+    let private makeMain = sprintf "(module (defn main [] %s))"
+
+    let load () =
+        ScriptRunner.executeCode (fun _ _ -> failwith "Interop not allowed") (makeMain (readConfig ())) "main" []
+        :?> Map<string, obj>
+        |> Map.map (fun k v -> ScriptRunner.parseString v)

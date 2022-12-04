@@ -1,6 +1,6 @@
 namespace SmsReader.Common
 
-module ReflectionFunctionResolver =
+module AndroidFunctionResolver =
     open System
     open MetaLang
 

@@ -1,5 +1,14 @@
 ﻿namespace SmsReader.App
 
+module Config =
+    open System.IO
+    open System.Reflection
+
+    let readConfig () =
+        let assembly = Assembly.GetExecutingAssembly()
+        use stream = assembly.GetManifestResourceStream("app.Resources.config.edn")
+        (new StreamReader(stream)).ReadToEnd()
+
 module TranslateSample =
     open Android.Gms.Extensions
     open Xamarin.Google.MLKit.NL.Translate
@@ -25,7 +34,7 @@ module TranslateSample =
 module SmsReaderApp =
     open System.Net
     module R = SmsReader.Lib.ScriptRunner
-    module RV = SmsReader.Common.ReflectionFunctionResolver
+    module RV = SmsReader.Common.AndroidFunctionResolver
 
     let main host (sms: Map<string, obj>) log =
         task {
@@ -51,9 +60,9 @@ open Android.Net
 open Android.Content
 
 module SmsClient =
-    let run (context: Activity) (logTextView: TextView) =
+    let run (context: Activity) log =
         // date_sent, subject, body, creator, seen, address, person, protocol, read, status, type, service_center
-        let cursor =
+        use cursor =
             context.ContentResolver.Query(Uri.Parse "content://sms/inbox", null, null, null, null)
 
         let columnNames = cursor.GetColumnNames()
@@ -64,9 +73,7 @@ module SmsClient =
             |> Seq.map (fun k -> k, cursor.GetString(cursor.GetColumnIndexOrThrow(k)) |> box)
             |> Map.ofSeq
 
-        SmsReaderApp.main "192.168.0.102" sms (fun log ->
-            logTextView.Text <- $"%s{log}\n==================\n%s{logTextView.Text}")
-        |> ignore
+        SmsReaderApp.main "192.168.0.102" sms log |> ignore
 
 [<Activity(Label = "@string/app_name", MainLauncher = true)>]
 type MainActivity() =
@@ -82,7 +89,10 @@ type MainActivity() =
         scroll.AddView(logTextView)
         base.SetContentView(scroll)
 
-        SmsClient.run this logTextView
+        // logTextView.Text <- sprintf "Config:%A" (Config.readConfig ())
+
+        SmsClient.run this (fun log -> logTextView.Text <- $"%s{log}\n==================\n%s{logTextView.Text}")
+        ()
 
 [<BroadcastReceiver(Enabled = true, Exported = false, Permission = "android.permission.BROADCAST_SMS")>]
 [<IntentFilter([| "android.provider.Telephony.SMS_RECEIVED"

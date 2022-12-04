@@ -4,3 +4,4 @@ playground/
 TestResults/
 google-services.json
 .DS_Store
+config.local.edn
