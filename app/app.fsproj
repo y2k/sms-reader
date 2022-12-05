@@ -20,9 +20,9 @@
     <GoogleServicesJson Include="google-services.json" />
   </ItemGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Include="Resources\config.local.edn" />
-  </ItemGroup>
+  <!-- <ItemGroup>
+    <EmbeddedResource Include="../core/scripts/program.clj" />
+  </ItemGroup> -->
 
   <ItemGroup>
     <ProjectReference Include="..\core\core.fsproj" />

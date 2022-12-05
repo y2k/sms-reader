@@ -1,14 +1,5 @@
 ﻿namespace SmsReader.App
 
-module Config =
-    open System.IO
-    open System.Reflection
-
-    let readConfig () =
-        let assembly = Assembly.GetExecutingAssembly()
-        use stream = assembly.GetManifestResourceStream("app.Resources.config.edn")
-        (new StreamReader(stream)).ReadToEnd()
-
 module TranslateSample =
     open Android.Gms.Extensions
     open Xamarin.Google.MLKit.NL.Translate
@@ -32,21 +23,22 @@ module TranslateSample =
         }
 
 module SmsReaderApp =
-    open System.Net
+    open System.Net.Http
     module R = SmsReader.Lib.ScriptRunner
     module RV = SmsReader.Common.AndroidFunctionResolver
 
-    let main host (sms: Map<string, obj>) log =
+    let main env host (sms: Map<string, obj>) log =
         task {
+            use client = new HttpClient()
             let mutable lastProgram = ""
 
             while true do
                 try
-                    let! program = (new WebClient()).DownloadStringTaskAsync($"http://%s{host}:8080/")
+                    let! program = client.GetStringAsync($"http://%s{host}:8080/")
 
                     if program <> lastProgram then
                         lastProgram <- program
-                        let! result = R.main TranslateSample.main RV.resolve program "main" sms
+                        let! result = R.main TranslateSample.main RV.resolve program "main" [ env; box sms ]
                         result |> string |> log
 
                     do! Async.Sleep 1_000
@@ -57,11 +49,9 @@ module SmsReaderApp =
 open Android.App
 open Android.Widget
 open Android.Net
-open Android.Content
 
 module SmsClient =
     let run (context: Activity) log =
-        // date_sent, subject, body, creator, seen, address, person, protocol, read, status, type, service_center
         use cursor =
             context.ContentResolver.Query(Uri.Parse "content://sms/inbox", null, null, null, null)
 
@@ -73,7 +63,8 @@ module SmsClient =
             |> Seq.map (fun k -> k, cursor.GetString(cursor.GetColumnIndexOrThrow(k)) |> box)
             |> Map.ofSeq
 
-        SmsReaderApp.main "192.168.0.102" sms log |> ignore
+        let env = SmsReader.Lib.ConfigParse.load ()
+        SmsReaderApp.main (box env) "192.168.88.125" sms log |> ignore
 
 [<Activity(Label = "@string/app_name", MainLauncher = true)>]
 type MainActivity() =
@@ -89,16 +80,5 @@ type MainActivity() =
         scroll.AddView(logTextView)
         base.SetContentView(scroll)
 
-        // logTextView.Text <- sprintf "Config:%A" (Config.readConfig ())
-
         SmsClient.run this (fun log -> logTextView.Text <- $"%s{log}\n==================\n%s{logTextView.Text}")
         ()
-
-[<BroadcastReceiver(Enabled = true, Exported = false, Permission = "android.permission.BROADCAST_SMS")>]
-[<IntentFilter([| "android.provider.Telephony.SMS_RECEIVED"
-                  "android.provider.Telephony.SMS_DELIVER" |])>]
-type SmsReceiver() =
-    inherit BroadcastReceiver()
-
-    override _.OnReceive(context, _intent) =
-        Toast.MakeText(context, "TEST", ToastLength.Long).Show()

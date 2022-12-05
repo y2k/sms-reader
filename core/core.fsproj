@@ -13,6 +13,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="scripts\config.local.edn" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\language\meta-lang\src\lib.fsproj" />
   </ItemGroup>
 

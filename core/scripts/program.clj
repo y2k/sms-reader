@@ -1,5 +1,3 @@
-;;
-
 (def rules [["ch'" "ჭ"] ["ts'" "წ"] ["ch" "ჩ"] ["dz" "ძ"] ["gh" "ღ"] ["k'" "კ"] ["kh" "ხ"] ["p'" "პ"] ["sh" "შ"] ["t'" "ტ"] ["ts" "ც"] ["zh" "ჟ"] ["a" "ა"] ["b" "ბ"] ["c" "ც"] ["d" "დ"] ["e" "ე"] ["f" "ფ"] ["g" "გ"] ["h" "ჰ"] ["i" "ი"] ["j" "ჯ"] ["k" "ქ"] ["l" "ლ"] ["m" "მ"] ["n" "ნ"] ["o" "ო"] ["p" "ფ"] ["q" "ყ"] ["r" "რ"] ["s" "ს"] ["t" "თ"] ["u" "უ"] ["v" "ვ"] ["w" "ვ"] ["x" "ხ"] ["z" "ზ"]])
 
 (defn decode [s]
@@ -15,7 +13,7 @@
     {:translate {:body decoded :callback :translate-callback}}))
 
 (defn translate-callback [env resp]
-  {:telegram {:token "__TELEGRAM_TOKEN__" :user "__USER_ID__" :message resp}})
+  {:telegram {:token (:__TELEGRAM_TOKEN__ env) :user (:__USER_ID__ env) :message resp}})
 
 #_(comment
 

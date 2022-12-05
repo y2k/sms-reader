@@ -74,9 +74,9 @@ module ScriptRunner =
 
     open System.Threading.Tasks
 
-    let rec main translate interopFuncResolve (code: string) fmain (arg: obj) =
+    let rec main translate interopFuncResolve (code: string) fmain (args: obj list) =
         task {
-            let result = executeCode interopFuncResolve code fmain [ Map.empty; arg ]
+            let result = executeCode interopFuncResolve code fmain args
 
             match result with
             | :? Map<string, obj> as dic ->
@@ -104,7 +104,7 @@ module ScriptRunner =
                                     | e -> failwithf "%A" e
 
                                 let! (translateResult: string) = translate body
-                                return! main translate interopFuncResolve code callback translateResult
+                                return! main translate interopFuncResolve code callback [ args[0]; translateResult ]
                             }
                         | "log", _ -> Task.FromResult(box $"%A{v}")
                         | eff -> Task.FromResult(box $"Unknown effect %A{eff}"))
@@ -120,7 +120,7 @@ module ConfigParse =
 
     let private readConfig () =
         let assembly = Assembly.GetExecutingAssembly()
-        use stream = assembly.GetManifestResourceStream("app.Resources.config.edn")
+        use stream = assembly.GetManifestResourceStream("core.scripts.config.local.edn")
         (new StreamReader(stream)).ReadToEnd()
 
     let private makeMain = sprintf "(module (defn main [] %s))"

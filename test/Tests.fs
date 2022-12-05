@@ -56,7 +56,13 @@ module private TestFuncResolver =
                 inst.Substring(int from, int len) |> box)
         | _ -> failwithf "Cant resolve method %s [%i]" name argCount
 
-    let main = SmsReader.Lib.ScriptRunner.main resolve
+    let main code arg =
+        (task {
+            let! r = SmsReader.Lib.ScriptRunner.main (fun _ -> failwith "???") resolve code "main" [ box arg ]
+
+            return string r
+        })
+            .Result
 
 [<Fact>]
 let test8 () =
@@ -86,7 +92,7 @@ let test8 () =
 """
             arg
 
-    Assert.Equal("\"აბგბა\"", actual)
+    Assert.Equal("აბგბა", actual)
 
 [<Fact>]
 let test7 () =
@@ -101,7 +107,7 @@ let test7 () =
 """
             arg
 
-    Assert.Equal("\"bc\"", actual)
+    Assert.Equal("bc", actual)
 
 [<Fact>]
 let test6 () =
@@ -116,7 +122,7 @@ let test6 () =
 """
             arg
 
-    Assert.Equal("\"ABC\"", actual)
+    Assert.Equal("ABC", actual)
 
 [<Fact>]
 let test5 () =
@@ -154,4 +160,4 @@ let test4 () =
     [(:body arg)]))"""
             arg
 
-    Assert.Equal("[\"7\"]", actual)
+    Assert.Equal("[7]", actual)
