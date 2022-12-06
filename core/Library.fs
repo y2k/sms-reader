@@ -114,6 +114,9 @@ module ScriptRunner =
             | r -> return box r
         }
 
+    let main_ translate interopFuncResolve (code: string) fmain (args: obj list) =
+        main translate interopFuncResolve $"(module %s{code})" fmain args
+
 module ConfigParse =
     open System.IO
     open System.Reflection
@@ -128,4 +131,32 @@ module ConfigParse =
     let load () =
         ScriptRunner.executeCode (fun _ _ -> failwith "Interop not allowed") (makeMain (readConfig ())) "main" []
         :?> Map<string, obj>
-        |> Map.map (fun k v -> ScriptRunner.parseString v)
+        |> Map.map (fun k v -> ScriptRunner.parseString v |> box)
+
+module SmsReaderApp =
+    open System.Net.Http
+    module R = ScriptRunner
+
+    let main translate funcResolver env host (sms: Map<string, obj>) log =
+        task {
+            use client = new HttpClient()
+            let mutable lastProgram = ""
+
+            while true do
+                try
+                    let! program = client.GetStringAsync($"http://%s{host}:8080/")
+
+                    if program <> lastProgram then
+                        lastProgram <- program
+                        let! result = R.main_ translate funcResolver program "main" [ env; box sms ]
+                        result |> string |> log
+
+                    do! Async.Sleep 1_000
+                with e ->
+                    log (string e)
+        }
+
+    let main_ translateEffect androidFunctionResolver sms log =
+        let env = ConfigParse.load ()
+        main translateEffect androidFunctionResolver (box env) (env["script-host"] |> string) sms log
+        |> ignore
