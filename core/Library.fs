@@ -70,7 +70,7 @@ module ScriptRunner =
         code
         |> LanguageParser.compile
         |> mapToCoreLang
-        |> Interpreter.run2 (extFunctions interopFuncResolve) fmain args
+        |> Interpreter.run (extFunctions interopFuncResolve) fmain args
 
     open System.Threading.Tasks
 
