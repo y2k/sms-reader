@@ -3,6 +3,15 @@
 
 (defn FIXME [])
 
+#_(comment
+
+    (:b {:a 1 :b 2 :c 3})
+    (get {:a 1 :b 2 :c 3} :b)
+
+    ;; ((-> (init) :ui :view) ["foo" "bar"])
+
+    ())
+
 (defn local-event-handler [e]
   (let [action (first e) arg (second e)]
     (if (= action :add)
@@ -14,13 +23,11 @@
 (defn html-to-string [node]
   (let [tag-name (name (first node))
         attrs (filter
-               (fn [x]
-                 (let [k (first x)]
-                   (and (not= :onclick k) (not= :innerText k))))
-               (second node))
+               (fn [x] (let [k (first x)] (not= :innerText k)))
+               (vec (second node)))
         attrs-str (reduce (fn [a x] (str a " " (name (first x)) "=\"" (second x) "\"")) "" attrs)
         children (rest (rest node))
-        inner-text-attr (:innerText (second node))
+        inner-text-attr (get (second node) :innerText)
         inner-text (reduce (fn [a x] (str a (html-to-string x))) "" children)
         inner-text-result (if (some? inner-text-attr) inner-text-attr inner-text)]
     (str "<" tag-name attrs-str ">" inner-text-result "</" tag-name ">")))
@@ -33,7 +40,7 @@
            [:div {:class "column is-four-fifths"}
             [:code {:innerText x}]]
            [:div {:class "column"}
-            [:button {:class "button" :innerText "delete" :onclick [:delete x]}]]])
+            [:button {:class "button" :innerText "delete" :onclick "send(delete)"}]]])
         items)))
 
 (defn view [db]
@@ -46,7 +53,7 @@
      [:div {:class "columns"}
       [:input {:class "column is-four-fifths"}]
       [:div {:class "column"}
-       [:button {:class "button" :innerText "Add" :onclick [:add {}]}]]]
+       [:button {:class "button" :innerText "Add" :onclick "send(add)"}]]]
      (list-view db)]]))
 
 (defn init []
