@@ -1,4 +1,5 @@
 #r "nuget: FParsec, 1.1.1"
+#r "nuget: Suave, 2.6.2"
 #r "../language/meta-lang/src/bin/Debug/net5.0/lib.dll"
 
 open System.IO
@@ -6,25 +7,11 @@ open MetaLang
 
 let private asString (instance: obj) =
     match instance with
+    | null -> null
     | :? string as s -> s
     | :? RSexp as (RSexp s) when s.StartsWith '"' && s.EndsWith '"' -> s.Substring(1, s.Length - 2)
     | :? RSexp as (RSexp s) -> s
     | s -> failwithf "Can't parse to string: %A (%O)" s (instance.GetType())
-
-// let private clearQuotes (instance: obj) =
-//     printfn "1) %O" instance
-
-//     match instance with
-//     | :? RSexp as (RSexp s) when s.StartsWith '"' && s.EndsWith '"' ->
-//         printfn "2) %O" instance
-//         RSexp(s.Substring(1, s.Length - 2)) |> box
-//     | :? RSexp as (RSexp s) ->
-//         let t = s.StartsWith '"' && s.EndsWith '"'
-//         printfn "3.1) |%O|%A|%O" s s t
-//         instance
-//     | instance ->
-//         printfn "3.2) %O" instance
-//         instance
 
 let private unwrapRSexp (instance: obj) =
     match instance with
@@ -34,6 +21,11 @@ let private unwrapRSexp (instance: obj) =
 
 let findNativeFunction (name: string) _ =
     match name with
+    | ".split" ->
+        Some(fun (args: (unit -> obj) list) ->
+            let instance = args[0]() |> asString
+            let separator = args[1]() |> asString
+            instance.Split separator |> Seq.map box |> Seq.toList |> box)
     | "if" ->
         Some(fun (args: (unit -> obj) list) ->
             let condition =
@@ -56,11 +48,23 @@ let findNativeFunction (name: string) _ =
         Some(fun (args: (unit -> obj) list) ->
             let (l: obj list) = args[0]() |> unbox
             List.head l |> box)
+    // | "keyword_of_sexp" ->
+    //     Some(fun (args: (unit -> obj) list) ->
+    //         let x = args[0]()
+    //         x)
+    | "=" ->
+        Some(fun (args: (unit -> obj) list) ->
+            let l = args[0]() |> unwrapRSexp
+            let r = args[1]() |> unwrapRSexp
+            r = l |> box)
     | "get" ->
         Some(fun (args: (unit -> obj) list) ->
-            let (m: Map<string, obj>) = args[0]() |> unbox
-            let (k: string) = args[1]() |> asString
-            Map.tryFind k m |> Option.defaultValue null |> box)
+            if isNull (args[0]()) then
+                null
+            else
+                let (m: Map<string, obj>) = args[0]() |> unbox
+                let (k: string) = args[1]() |> asString
+                Map.tryFind k m |> Option.defaultValue null |> box)
     | "and" ->
         Some(fun (args: (unit -> obj) list) ->
             let (l: bool) = args[0]() |> unbox
@@ -108,10 +112,12 @@ let findNativeFunction (name: string) _ =
 
 let ctx =
     TypeResolver.defaultContext
+    |> TypeResolver.registerFunc ".split" ([ Specific "string"; Specific "string" ], Unknown)
     |> TypeResolver.registerFunc "vec" ([ Unknown ], Specific "list")
     |> TypeResolver.registerFunc "concat" ([ Specific "list"; Specific "list" ], Specific "list")
     |> TypeResolver.registerFunc "get" ([ Unknown; Keyword ], Unknown)
     |> TypeResolver.registerFunc "first" ([ Specific "list" ], Unknown)
+    |> TypeResolver.registerFunc "keyword_of_sexp" ([ RawSexp ], Keyword)
     |> TypeResolver.registerFunc "some?" ([ Unknown ], Specific "bool")
     |> TypeResolver.registerFunc "second" ([ Specific "list" ], Unknown)
     |> TypeResolver.registerFunc "rest" ([ Specific "list" ], Specific "list")
@@ -128,28 +134,53 @@ let env = ExternalTypeResolver.loadDefault ()
 
 printfn "\n=== VALIDATE ===\n"
 
-let prog =
-    File.ReadAllLines "translates.clj"
-    |> Seq.filter (fun x -> not <| x.TrimStart().StartsWith(";;"))
-    |> Seq.reduce (sprintf "%s\n%s")
-    |> sprintf "(module %s)"
-    |> LanguageParser.compile
-    |> mapToCoreLang
-    |> TypeResolver.resolve env ctx
-    |> ConstantValidator.validate
-        (TypeResolver.fundFunctionByArgs ctx)
-        (TypeResolver.findFuncArgType ctx)
-        (ConstLevelFunctions.invoke)
+let runProgram (arg: Map<string, obj>) =
+    let prog =
+        File.ReadAllLines "translates.clj"
+        |> Seq.filter (fun x -> not <| x.TrimStart().StartsWith(";;"))
+        |> Seq.reduce (sprintf "%s\n%s")
+        |> sprintf "(module %s)"
+        |> LanguageParser.compile
+        |> mapToCoreLang
+        |> TypeResolver.resolve env ctx
+        |> ConstantValidator.validate
+            (TypeResolver.fundFunctionByArgs ctx)
+            (TypeResolver.findFuncArgType ctx)
+            (ConstLevelFunctions.invoke)
 
-printfn "\n=== RUN ===\n"
-// printfn "PROG:\n%A\n\n=== === ===\n" prog
-prog
-// |> Interpreter.run findNativeFunction "view" [ [ box "foo"; box "bar" ] ]
-|> Interpreter.run findNativeFunction "init" []
-|> fun x -> x :?> Map<string, obj> |> Map.find "ui"
-|> fun x -> x :?> Map<string, obj> |> Map.find "view"
-|> fun x -> (x :?> (obj list -> obj)) [ [ box "foo"; box "bar" ] ]
-|> printfn "LOG:\n%A"
+    // printfn "\n=== RUN ===\n"
+    // printfn "PROG:\n%A\n\n=== === ===\n" prog
+    let call name (args: obj list) =
+        prog
+        |> Interpreter.run findNativeFunction "init" []
+        |> fun x -> x :?> Map<string, obj> |> Map.find "ui"
+        |> fun x -> x :?> Map<string, obj> |> Map.find name
+        |> fun x -> (x :?> (obj list -> obj)) args
+
+    call "update" [ [ box "form"; arg ] ] |> printfn "LOG: update result: %O"
+
+    call "view" [ List.init 20 (sprintf "#%i word - translation" >> box) ] |> string
+
+open Suave
+open Suave.Operators
+open Suave.Filters
+
+// LOG: / | [(action, Some(add))]
+// LOG: / | [(input, Some(111)); (action, Some(add))]
+// LOG: / | [(input, Some()); (action, Some(delete:#1 word - translation))]
+
+choose
+    [ POST
+      >=> request (fun r ->
+          printfn "LOG: %O | %O" r.path r.form
+
+          r.form
+          |> Map.ofList
+          |> Map.map (fun _ x -> Option.defaultValue "" x |> box)
+          |> runProgram
+          |> Successful.OK)
+      GET >=> request (fun _ -> Successful.OK(runProgram Map.empty)) ]
+|> startWebServer defaultConfig
 
 // prog
 // |> Interpreter.run Map.empty "local-event-handler" [ "" ]

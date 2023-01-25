@@ -1,24 +1,22 @@
 (defn main [db]
   {:show-toast "FIXME"})
 
-(defn FIXME [])
-
-#_(comment
-
-    (:b {:a 1 :b 2 :c 3})
-    (get {:a 1 :b 2 :c 3} :b)
-
-    ;; ((-> (init) :ui :view) ["foo" "bar"])
-
-    ())
-
 (defn local-event-handler [e]
-  (let [action (first e) arg (second e)]
-    (if (= action :add)
-      (FIXME)
-      (if (= action :delete)
-        (FIXME)
-        []))))
+  (if (= (first e) :form)
+    (let [arg (second e)
+          action-ext (get arg :action)]
+      (if (some? action-ext)
+        (let [params (.split (get arg :action) ":")
+              action (first params)]
+          (if (some? arg)
+            (if (= action :add)
+              {:insert-db {:add (get arg :input)}}
+              (if (= action :delete)
+                {:insert-db {:delete (second params)}}
+                {:error params}))
+            {:error2 params}))
+        {:error3 params}))
+    {:error4 params}))
 
 (defn html-to-string [node]
   (let [tag-name (name (first node))
@@ -36,25 +34,33 @@
   (concat
    [:div {}]
    (map (fn [x]
-          [:div {:class "columns"}
-           [:div {:class "column is-four-fifths"}
-            [:code {:innerText x}]]
-           [:div {:class "column"}
-            [:button {:class "button" :innerText "delete" :onclick "send(delete)"}]]])
+          [:div {:class "level"}
+           [:div {:class "card is-flex-grow-1"}
+            [:div {:class "card-content"}
+             [:div {:class "content" :innerText x}]]
+            [:div {:class "card-footer"}
+             [:button {:class "button is-danger" :name "action" :value (str "delete:" x) :innerText "Delete"}]]]])
         items)))
 
 (defn view [db]
   (html-to-string
    [:html {}
     [:head {}
+     [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
      [:link {:rel "stylesheet" :href "https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css"}]
-     [:style {:innerText ".form { display: flex; flex-direction: column; max-width: 600px; margin: auto; padding: 16px }; .list > *:not(:last-child) { margin-bottom: 16px; }"}]]
-    [:body {:class "form"}
-     [:div {:class "columns"}
-      [:input {:class "column is-four-fifths"}]
-      [:div {:class "column"}
-       [:button {:class "button" :innerText "Add" :onclick "send(add)"}]]]
-     (list-view db)]]))
+     [:link {:rel "stylesheet" :href "https://unpkg.com/bulma-prefers-dark@0.1.0-beta.1"}]]
+    [:body {}
+     [:form {:method "post"}
+      [:section {:class "section pt-4"}
+       [:div {:class "container"}
+        [:div {:class "field"}
+         [:label {:class "label" :innerText "New word"}]
+         [:div {:class "control"}
+          [:input {:class "input" :name "input" :placeholder "<word> - <translation>"}]]]
+        [:button {:class "button is-primary" :innerText "Add" :name "action" :value "add"}]]]
+      [:section {:class "section py-0"}
+       [:h1 {:class "title" :innerText "Words"}]
+       (list-view db)]]]]))
 
 (defn init []
   {:ui {:update (fn [e] (local-event-handler e))
