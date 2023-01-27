@@ -172,11 +172,12 @@ open Suave.Filters
 choose
     [ POST
       >=> request (fun r ->
-          printfn "LOG: %O | %O" r.path r.form
-
           r.form
           |> Map.ofList
           |> Map.map (fun _ x -> Option.defaultValue "" x |> box)
+          |> fun x ->
+              printfn "LOG: FORM: %A" x
+              x
           |> runProgram
           |> Successful.OK)
       GET >=> request (fun _ -> Successful.OK(runProgram Map.empty)) ]

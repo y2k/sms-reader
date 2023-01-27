@@ -15,8 +15,8 @@
                 {:insert-db {:delete (second params)}}
                 {:error params}))
             {:error2 params}))
-        {:error3 params}))
-    {:error4 params}))
+        {:error3 "FIXME"}))
+    {:error4 "FIXME"}))
 
 (defn html-to-string [node]
   (let [tag-name (name (first node))
@@ -51,16 +51,17 @@
      [:link {:rel "stylesheet" :href "https://unpkg.com/bulma-prefers-dark@0.1.0-beta.1"}]]
     [:body {}
      [:form {:method "post"}
-      [:section {:class "section pt-4"}
-       [:div {:class "container"}
-        [:div {:class "field"}
-         [:label {:class "label" :innerText "New word"}]
-         [:div {:class "control"}
-          [:input {:class "input" :name "input" :placeholder "<word> - <translation>"}]]]
-        [:button {:class "button is-primary" :innerText "Add" :name "action" :value "add"}]]]
-      [:section {:class "section py-0"}
-       [:h1 {:class "title" :innerText "Words"}]
-       (list-view db)]]]]))
+      [:div {:class "container"}
+       [:section {:class "section pt-4"}
+        [:div {:class "container"}
+         [:div {:class "field"}
+          [:label {:class "label" :innerText "New word"}]
+          [:div {:class "control"}
+           [:input {:class "input" :name "input" :placeholder "<word> - <translation>"}]]]
+         [:button {:class "button is-primary" :innerText "Add" :name "action" :value "add"}]]]
+       [:section {:class "section py-0"}
+        [:h1 {:class "title" :innerText "Words"}]
+        (list-view db)]]]]]))
 
 (defn init []
   {:ui {:update (fn [e] (local-event-handler e))
