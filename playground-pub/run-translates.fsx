@@ -157,7 +157,7 @@ let runProgram (arg: Map<string, obj>) =
         |> fun x -> x :?> Map<string, obj> |> Map.find name
         |> fun x -> (x :?> (obj list -> obj)) args
 
-    call "update" [ [ box "form"; arg ] ] |> printfn "LOG: update result: %O"
+    call "update" [ [ box "web"; arg ] ] |> printfn "LOG: update result: %O"
 
     call "view" [ List.init 20 (sprintf "#%i word - translation" >> box) ] |> string
 
