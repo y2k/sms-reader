@@ -60,7 +60,7 @@
                  :hx-target "body"
                  :hx-vals "js:{action:'add'}"
                  :hx-include "[name='input']"}]]
-      [:section {:class "section py-0"}
+      [:section {:class "section pt-0"}
        [:h1 {:class "title" :innerText "Words"}]
        (list-view db)]]]]))
 
