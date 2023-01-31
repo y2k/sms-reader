@@ -159,7 +159,9 @@ let runProgram (arg: Map<string, obj>) =
 
     call "update" [ [ box "web"; arg ] ] |> printfn "LOG: update result: %O"
 
-    call "view" [ List.init 20 (sprintf "#%i word - translation" >> box) ] |> string
+    call "view" [ List.init 20 (sprintf "#%i word - translation" >> box) ]
+    |> string
+    |> sprintf "<!DOCTYPE html>%s"
 
 open Suave
 open Suave.Operators
