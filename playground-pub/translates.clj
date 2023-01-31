@@ -4,11 +4,10 @@
 (defn local-event-handler [e2]
   (if (= (first e2) :web)
     (let [e (second e2)]
-      (if (= (get e :action) :add)
-        {:insert-db {:add (get e :input)}}
-        (if (= (get e :action) :delete)
-          {:insert-db {:delete (get e :id)}}
-          {:error e})))
+      (case (get e :action)
+        :add {:insert-db {:add (get e :input)}}
+        :delete {:insert-db {:delete (get e :id)}}
+        {:error e}))
     {:error2 e2}))
 
 (defn html-to-string [node]

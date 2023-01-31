@@ -142,6 +142,7 @@ let runProgram (arg: Map<string, obj>) =
         |> sprintf "(module %s)"
         |> LanguageParser.compile
         |> mapToCoreLang
+        |> MacroExpand.run
         |> TypeResolver.resolve env ctx
         |> ConstantValidator.validate
             (TypeResolver.fundFunctionByArgs ctx)
