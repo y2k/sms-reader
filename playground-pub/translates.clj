@@ -1,14 +1,14 @@
 (defn main [db]
   {:show-toast "FIXME"})
 
-(defn local-event-handler [e2]
-  (if (= (first e2) :web)
-    (let [e (second e2)]
+(defn local-event-handler [e]
+  (if (= (first e) :web)
+    (let [e (second e)]
       (case (get e :action)
         :add {:insert-db {:add (get e :input)}}
         :delete {:insert-db {:delete (get e :id)}}
         {:error e}))
-    {:error2 e2}))
+    {:error2 e}))
 
 (defn html-to-string [node]
   (let [tag-name (name (first node))

@@ -1,6 +1,6 @@
 #r "nuget: FParsec, 1.1.1"
 #r "nuget: Suave, 2.6.2"
-#r "../language/meta-lang/src/bin/Debug/net5.0/lib.dll"
+#r "../language/meta-lang/src/bin/Debug/net6.0/lib.dll"
 
 open System.IO
 open MetaLang
@@ -149,8 +149,8 @@ let runProgram (arg: Map<string, obj>) =
             (TypeResolver.findFuncArgType ctx)
             (ConstLevelFunctions.invoke)
 
-    // printfn "\n=== RUN ===\n"
-    // printfn "PROG:\n%A\n\n=== === ===\n" prog
+    printfn "\n=== RUN ===\n"
+
     let call name (args: obj list) =
         prog
         |> Interpreter.run findNativeFunction "init" []
@@ -168,10 +168,6 @@ open Suave
 open Suave.Operators
 open Suave.Filters
 
-// LOG: / | [(action, Some(add))]
-// LOG: / | [(input, Some(111)); (action, Some(add))]
-// LOG: / | [(input, Some()); (action, Some(delete:#1 word - translation))]
-
 choose
     [ POST
       >=> request (fun r ->
@@ -185,7 +181,3 @@ choose
           |> Successful.OK)
       GET >=> request (fun _ -> Successful.OK(runProgram Map.empty)) ]
 |> startWebServer defaultConfig
-
-// prog
-// |> Interpreter.run Map.empty "local-event-handler" [ "" ]
-// |> printfn "LOG:\n%A"
