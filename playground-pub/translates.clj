@@ -7,8 +7,8 @@
       (case (get e :action)
         :add {:insert-db {:add (get e :input)}}
         :delete {:insert-db {:delete (get e :id)}}
-        {:error e}))
-    {:error2 e}))
+        {}))
+    {}))
 
 (defn html-to-string [node]
   (let [tag-name (name (first node))
