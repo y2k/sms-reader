@@ -30,7 +30,6 @@ let runProgram (arg: Map<string, obj>) =
         |> MacroExpand.expandSexp
         |> LanguageParser.compileToExtNode
         |> mapToCoreLang
-        |> MacroExpand.run
         |> TypeResolver.resolve env ctx
         |> ConstantValidator.validate
             (TypeResolver.fundFunctionByArgs ctx)
@@ -60,12 +59,8 @@ let runProgram (arg: Map<string, obj>) =
 
     stateHistory.Add state
 
-    // input |> JsonSerializer.Serialize |> printfn "LOG: IN: %O"
-    // effect |> JsonSerializer.Serialize |> printfn "LOG: OUT: %O"
     inputHistory |> JsonSerializer.Serialize |> printfn "LOG: IN's: %O"
-    // globalEffects |> JsonSerializer.Serialize |> printfn "LOG: EFFECTS: %O"
     stateHistory |> JsonSerializer.Serialize |> printfn "LOG: STATE's: %O"
-    // state |> JsonSerializer.Serialize |> printfn "LOG: STATE: %O"
 
     call "view" [ state ] |> string
 

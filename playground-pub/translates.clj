@@ -1,17 +1,15 @@
+(comment
+
+  (=
+   [{} {:items ["xxxx"]} {:items ["sss" "xxxx"]} {:items ["xxxx"]} {:items []}]
+   (->>
+    [{} {:action :add :input "xxxx"} {:action :add :input "sss"} {:action :delete :id "sss"} {:action :delete :id "xxxx"}]
+    (reductions (fn [a e] (->> (local-event-handler e) (make-storage a))) {}) (rest)))
+
+  (comment))
+
 (defn main [db]
   {:show-toast "FIXME"})
-
-;; (defn make-storage [db e]
-;;   (let [e (:update-db e)]
-;;     (if (some? e)
-;;       (let [arg (:add e)]
-;;         (if (some? arg)
-;;           (assoc db :items (cons arg (or (:items db) [])))
-;;           (let [arg3 (:delete e)]
-;;             (if (some? arg3)
-;;               (assoc db :items (filter (fn [x] (not= x arg3)) (or (:items db) [])))
-;;               db))))
-;;       db)))
 
 (defn make-storage [db e]
   (if-some [e (:update-db e)]
@@ -21,22 +19,6 @@
         (assoc db :items (filter (fn [x] (not= x arg)) (or (:items db) [])))
         db))
     db))
-
-(comment
-
-  (=
-   [{} {:items ["xxxx"]} {:items ["sss" "xxxx"]} {:items ["xxxx"]} {:items []}]
-   (->>
-    [{} {:action :add :input "xxxx"} {:action :add :input "sss"} {:action :delete :id "sss"} {:action :delete :id "xxxx"}]
-    (reductions
-     (fn [a e]
-       (->>
-        (local-event-handler e)
-        (make-storage a)))
-     {})
-    (rest)))
-
-  (comment))
 
 (defn local-event-handler [e]
   (case (:action e)
