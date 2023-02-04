@@ -1,13 +1,47 @@
 (defn main [db]
   {:show-toast "FIXME"})
 
+;; (defn make-storage [db e]
+;;   (let [e (:update-db e)]
+;;     (if (some? e)
+;;       (let [arg (:add e)]
+;;         (if (some? arg)
+;;           (assoc db :items (cons arg (or (:items db) [])))
+;;           (let [arg3 (:delete e)]
+;;             (if (some? arg3)
+;;               (assoc db :items (filter (fn [x] (not= x arg3)) (or (:items db) [])))
+;;               db))))
+;;       db)))
+
+(defn make-storage [db e]
+  (if-some [e (:update-db e)]
+    (if-some [arg (:add e)]
+      (assoc db :items (cons arg (or (:items db) [])))
+      (if-some [arg (:delete e)]
+        (assoc db :items (filter (fn [x] (not= x arg)) (or (:items db) [])))
+        db))
+    db))
+
+(comment
+
+  (=
+   [{} {:items ["xxxx"]} {:items ["sss" "xxxx"]} {:items ["xxxx"]} {:items []}]
+   (->>
+    [{} {:action :add :input "xxxx"} {:action :add :input "sss"} {:action :delete :id "sss"} {:action :delete :id "xxxx"}]
+    (reductions
+     (fn [a e]
+       (->>
+        (local-event-handler e)
+        (make-storage a)))
+     {})
+    (rest)))
+
+  (comment))
+
 (defn local-event-handler [e]
-  (if (= (first e) :web)
-    (let [e (second e)]
-      (case (get e :action)
-        :add {:insert-db {:add (get e :input)}}
-        :delete {:insert-db {:delete (get e :id)}}
-        {}))
+  (case (:action e)
+    :add {:update-db {:add (:input e)}}
+    :delete {:update-db {:delete (:id e)}}
     {}))
 
 (defn html-to-string [node]
@@ -17,7 +51,7 @@
                (vec (second node)))
         attrs-str (reduce (fn [a x] (str a " " (name (first x)) "=\"" (second x) "\"")) "" attrs)
         children (rest (rest node))
-        inner-text-attr (get (second node) :innerText)
+        inner-text-attr (:innerText (second node))
         inner-text (reduce (fn [a x] (str a (html-to-string x))) "" children)
         inner-text-result (if (some? inner-text-attr) inner-text-attr inner-text)]
     (str "<" tag-name attrs-str ">" inner-text-result "</" tag-name ">")))
@@ -39,7 +73,7 @@
         items)))
 
 (defn view [db]
-  (html-to-string
+  (->>
    [:html {:lang "en"}
     [:head {}
      [:meta {:charset "UTF-8"}]
@@ -64,10 +98,13 @@
                  :hx-include "[name='input']"}]]
       [:section {:class "section pt-0"}
        [:h1 {:class "title" :innerText "Words"}]
-       (list-view db)]]]]))
+       (list-view (or (:items db) []))]]]]
+   (html-to-string)
+   (str "<!DOCTYPE html>")))
 
 (defn init []
   {:ui {:update (fn [e] (local-event-handler e))
+        :restore-state (fn [db e] (make-storage db e))
         :view (fn [db] (view db))}
    :schedule {:period 1
               :env {:db {}}
