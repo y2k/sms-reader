@@ -1,13 +1,3 @@
-(comment
-
-  (=
-   [{} {:items ["xxxx"]} {:items ["sss" "xxxx"]} {:items ["xxxx"]} {:items []}]
-   (->>
-    [{} {:action :add :input "xxxx"} {:action :add :input "sss"} {:action :delete :id "sss"} {:action :delete :id "xxxx"}]
-    (reductions (fn [a e] (->> (local-event-handler e) (make-storage a))) {}) (rest)))
-
-  (comment))
-
 (defn main [db]
   {:show-toast "FIXME"})
 
@@ -39,20 +29,19 @@
     (str "<" tag-name attrs-str ">" inner-text-result "</" tag-name ">")))
 
 (defn list-view [items]
-  (concat
-   [:div {}]
-   (map (fn [x]
-          [:div {:class "level"}
-           [:div {:class "card is-flex-grow-1"}
-            [:div {:class "card-content"}
-             [:div {:class "content" :innerText x}]]
-            [:div {:class "card-footer"}
-             [:button {:class "button is-danger"
-                       :innerText "Delete"
-                       :hx-post ""
-                       :hx-target "body"
-                       :hx-vals (str "js:{action:'delete',id:'" x "'}")}]]]])
-        items)))
+  (let [children
+        (map (fn [x]
+               [:article {}
+                [:h3 {:innerText x}]
+                [:footer {}
+                 [:a {:innerText "Delete"
+                      :href "#"
+                      :role "button"
+                      :hx-post ""
+                      :hx-target "body"
+                      :hx-vals (str "js:{action:'delete',id:'" x "'}")}]]])
+             items)]
+    (concat [:div {}] children)))
 
 (defn view [db]
   (->>
@@ -62,25 +51,18 @@
      [:title {:innerText "Words"}]
      [:meta {:name "description" :content "Remember words application"}]
      [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
-     [:link {:rel "stylesheet" :href "https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css"}]
-     [:link {:rel "stylesheet" :href "https://unpkg.com/bulma-prefers-dark@0.1.0-beta.1"}]
+     [:link {:rel "stylesheet" :href "https://unpkg.com/@picocss/pico@1.*/css/pico.min.css"}]
      [:script {:src "https://unpkg.com/htmx.org@1.8.5" :defer "" :crossorigin "anonymous" :integrity "sha384-7aHh9lqPYGYZ7sTHvzP1t3BAfLhYSTy9ArHdP3Xsr9/3TlGurYgcPBoFmXX2TX/w"}]]
     [:body {}
-     [:div {:class "container"}
-      [:section {:class "section pt-4"}
-       [:div {:class "field"}
-        [:label {:class "label" :innerText "New word"}]
-        [:div {:class "control"}
-         [:input {:class "input" :name "input" :placeholder "<word> - <translation>"}]]]
-       [:button {:class "button is-primary"
-                 :innerText "Add"
-                 :hx-post ""
-                 :hx-target "body"
-                 :hx-vals "js:{action:'add'}"
-                 :hx-include "[name='input']"}]]
-      [:section {:class "section pt-0"}
-       [:h1 {:class "title" :innerText "Words"}]
-       (list-view (or (:items db) []))]]]]
+     [:main {:class "container"}
+      [:label {:innerText "New word"}]
+      [:input {:name "input" :placeholder "<word> - <translation>"}]
+      [:button {:innerText "Add"
+                :hx-post ""
+                :hx-target "body"
+                :hx-vals "js:{action:'add'}"
+                :hx-include "[name='input']"}]
+      (list-view (or (:items db) []))]]]
    (html-to-string)
    (str "<!DOCTYPE html>")))
 
