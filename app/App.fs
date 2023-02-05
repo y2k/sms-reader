@@ -4,7 +4,7 @@ open Android.App
 open Android.Webkit
 open SmsReader
 
-[<Activity(Label = "@string/app_name", MainLauncher = true)>]
+[<Activity(Label = "@string/app_name", MainLauncher = true, Theme = "@android:style/Theme.NoTitleBar")>]
 type MainActivity() =
     inherit Activity()
 
