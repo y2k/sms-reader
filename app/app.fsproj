@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <Compile Include="Common.fs" />
+    <Compile Include="WordsLearning.fs" />
     <Compile Include="App.fs" />
   </ItemGroup>
 

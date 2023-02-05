@@ -78,4 +78,4 @@ module Server =
               |> runProgram
               |> Successful.OK)
           GET >=> request (fun _ -> Successful.OK(runProgram Map.empty)) ]
-    |> startWebServer defaultConfig
+    |> startWebServer { defaultConfig with bindings = [ HttpBinding.createSimple HTTP "0.0.0.0" 8080 ] }

@@ -1,9 +1,8 @@
 ﻿namespace SmsReader.App
 
 open Android.App
-open Android.Widget
-open SmsReader.Lib
-open SmsReader.Common
+open Android.Webkit
+open SmsReader
 
 [<Activity(Label = "@string/app_name", MainLauncher = true)>]
 type MainActivity() =
@@ -12,13 +11,10 @@ type MainActivity() =
     override this.OnCreate savedInstanceState =
         base.OnCreate savedInstanceState
 
-        let scroll = new ScrollView(this)
-        scroll.SetBackgroundColor(Android.Graphics.Color.Black)
-        let logTextView = new TextView(this)
-        logTextView.SetTextColor(Android.Graphics.Color.DarkSeaGreen)
-        scroll.AddView(logTextView)
-        base.SetContentView(scroll)
+        let webview = new WebView(this)
+        webview.Settings.JavaScriptEnabled <- true
+        base.SetContentView(webview)
 
-        SmsReaderApp.main_ TranslateEffect.main AndroidFunctionResolver.resolve (SmsSource.run this) (fun log ->
-            logTextView.Text <- $"%s{log}\n==================\n%s{logTextView.Text}")
-        |> ignore
+        WordsLearning.Server.run () |> ignore
+
+        webview.LoadUrl "http://localhost:8080/"
