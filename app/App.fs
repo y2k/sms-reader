@@ -12,14 +12,16 @@ type MainActivity() =
     override this.OnCreate savedInstanceState =
         base.OnCreate savedInstanceState
 
-        let webview = new WebView(this)
-        webview.Id <- 1
-        webview.Settings.JavaScriptEnabled <- true
-        base.SetContentView(webview)
+        let webView = new WebView(this)
+        webView.Id <- 1
+        webView.Settings.JavaScriptEnabled <- true
+        webView.SetWebViewClient(new MyWebViewClient())
+        base.SetContentView(webView)
 
-        WordsLearning.Server.run () |> ignore
+        WordsLearning.Server.run ()
+        |> ignore
 
-        webview.LoadUrl "http://localhost:8080/"
+        webView.LoadUrl "http://localhost:8080/"
 
     override this.DispatchKeyEvent(e: KeyEvent) =
         if e.KeyCode = Keycode.Menu && e.Action = KeyEventActions.Down then
@@ -27,3 +29,10 @@ type MainActivity() =
             webview.LoadUrl(webview.Url)
 
         base.DispatchKeyEvent(e)
+
+and MyWebViewClient() =
+    inherit WebViewClient()
+
+    override _.ShouldOverrideUrlLoading((webView: WebView), (url: string)) =
+        webView.LoadUrl url
+        true

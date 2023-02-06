@@ -20,14 +20,13 @@ let private stateHistory: obj ResizeArray = ResizeArray()
 module private CodeResolver =
     open System.Net.Http
 
-    let resolve () =
+    let resolve (appUrl: string) =
         let client = new HttpClient()
-        client.GetStringAsync "http://192.168.20.19:8080/y2k/sms-reader/master/playground-pub/translates.clj"
-// client.GetStringAsync "https://raw.githubusercontent.com/y2k/sms-reader/master/playground-pub/translates.clj"
+        client.GetStringAsync appUrl
 
-let private runProgram (arg: Map<string, obj>) =
+let private runProgram appUrl (arg: Map<string, obj>) =
     task {
-        let! code = CodeResolver.resolve ()
+        let! code = CodeResolver.resolve appUrl
 
         let prog =
             code.Split [| '\n'; '\r' |]
@@ -53,7 +52,6 @@ let private runProgram (arg: Map<string, obj>) =
             |> fun x -> x :?> Map<string, obj> |> Map.find name
             |> fun x -> (x :?> (obj list -> obj)) args
 
-        // let input = [ box "web"; arg ]
         let input = arg
         inputHistory.Add input
 
@@ -74,17 +72,38 @@ let private runProgram (arg: Map<string, obj>) =
     }
 
 module Server =
+    open System.IO
     open System.Net
     open System.Text
+    open System.Web
+
+    let private appUrl =
+        // "https://raw.githubusercontent.com/y2k/sms-reader/master/playground-pub/translates.clj"
+        "http://192.168.20.19:8081/y2k/sms-reader/master/playground-pub/translates.clj"
 
     let run () =
-        task {
-            let listner = new HttpListener()
-            listner.Prefixes.Add("http://localhost:8080/")
-            listner.Start()
+        let listner = new HttpListener()
+        listner.Prefixes.Add("http://localhost:8080/")
+        listner.Start()
 
+        task {
             while true do
                 let! ctx = listner.GetContextAsync()
-                let! response = runProgram Map.empty
+
+                let! response =
+                    if ctx.Request.HttpMethod = "POST" then
+                        task {
+                            let! formString = (new StreamReader(ctx.Request.InputStream)).ReadToEndAsync()
+
+                            let form =
+                                HttpUtility.ParseQueryString(formString)
+                                |> fun xs -> xs.AllKeys |> Seq.map (fun k -> k, box xs[k]) |> Map.ofSeq
+
+                            return! runProgram appUrl form
+                        }
+                    else
+                        runProgram appUrl Map.empty
+
                 do! ctx.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes response)
+                ctx.Response.Close()
         }

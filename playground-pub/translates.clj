@@ -34,11 +34,8 @@
                [:article {}
                 [:h3 {} x]
                 [:footer {}
-                 [:a {:href "#"
-                      :role "button"
-                      :hx-post ""
-                      :hx-target "body"
-                      :hx-vals (str "js:{action:'delete',id:'" x "'}")}
+                 [:div {:role "button" :hx-post "" :hx-target "body"
+                        :hx-vals (str "js:{action:'delete',id:'" x "'}")}
                   "Delete"]]])
              items)]
     (concat [:div {}] children)))
@@ -57,9 +54,7 @@
      [:main {:class "container"}
       [:label {} "New word"]
       [:input {:name "input" :placeholder "<word> - <translation>"}]
-      [:button {:hx-post ""
-                :hx-target "body"
-                :hx-vals "js:{action:'add'}"
+      [:button {:hx-post "" :hx-target "body" :hx-vals "js:{action:'add'}"
                 :hx-include "[name='input']"}
        "Add"]
       (list-view (or (:items db) []))]]]
