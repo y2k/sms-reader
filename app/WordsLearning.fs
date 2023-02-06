@@ -22,7 +22,8 @@ module private CodeResolver =
 
     let resolve () =
         let client = new HttpClient()
-        client.GetStringAsync "https://raw.githubusercontent.com/y2k/sms-reader/master/playground-pub/translates.clj"
+        client.GetStringAsync "http://192.168.20.19:8080/y2k/sms-reader/master/playground-pub/translates.clj"
+// client.GetStringAsync "https://raw.githubusercontent.com/y2k/sms-reader/master/playground-pub/translates.clj"
 
 let private runProgram (arg: Map<string, obj>) =
     task {
@@ -87,16 +88,3 @@ module Server =
                 let! response = runProgram Map.empty
                 do! ctx.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes response)
         }
-
-// https://raw.githubusercontent.com/y2k/sms-reader/master/playground-pub/translates.clj
-
-// choose
-//     [ POST
-//       >=> request (fun r ->
-//           r.form
-//           |> Map.ofList
-//           |> Map.map (fun _ x -> Option.defaultValue "" x |> box)
-//           |> runProgram
-//           |> Successful.OK)
-//       GET >=> request (fun _ -> Successful.OK(runProgram Map.empty)) ]
-// |> startWebServer { defaultConfig with bindings = [ HttpBinding.createSimple HTTP "0.0.0.0" 8080 ] }
