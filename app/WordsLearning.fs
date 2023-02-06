@@ -2,12 +2,26 @@ module SmsReader.WordsLearning
 
 open System.Text.Json
 open MetaLang
+open SmsReader.Common
 
-let private findNativeFunction (name: string) _ =
+let private extFunctions (name: string) (argCount: int) =
+    if name.StartsWith "." then
+        AndroidFunctionResolver.resolve name argCount |> Some
+    else if name.Contains "/" then
+        AndroidFunctionResolver.resolveStatic name argCount |> Some
+    else
+        None
+
+let private findNativeFunction (name: string) cnt =
     match name with
-    | _ -> DefaultFunctions.findNativeFunction name ()
+    | _ ->
+        extFunctions name cnt
+        |> Option.orElseWith (fun _ -> DefaultFunctions.findNativeFunction name ())
 
-let private ctx = DefaultFunctions.defaultContext
+let private ctx =
+    DefaultFunctions.defaultContext
+    |> TypeResolver.registerFunc "android.widget.Toast/makeText" ([ Unknown; Unknown; Unknown ], Unknown)
+    |> TypeResolver.registerFunc ".show" ([ Unknown ], Unknown)
 
 let private env = ExternalTypeResolver.loadDefault ()
 
@@ -78,8 +92,16 @@ module Server =
     open System.Web
 
     let private appUrl =
-        // "https://raw.githubusercontent.com/y2k/sms-reader/master/playground-pub/translates.clj"
         "http://192.168.20.19:8081/y2k/sms-reader/master/playground-pub/translates.clj"
+    // "https://raw.githubusercontent.com/y2k/sms-reader/master/playground-pub/translates.clj"
+
+    let private safeRunProgram ctx =
+        task {
+            try
+                return! runProgram appUrl ctx
+            with e ->
+                return string e
+        }
 
     let run () =
         let listner = new HttpListener()
@@ -99,10 +121,10 @@ module Server =
                                 HttpUtility.ParseQueryString(formString)
                                 |> fun xs -> xs.AllKeys |> Seq.map (fun k -> k, box xs[k]) |> Map.ofSeq
 
-                            return! runProgram appUrl form
+                            return! safeRunProgram form
                         }
                     else
-                        runProgram appUrl Map.empty
+                        safeRunProgram Map.empty
 
                 do! ctx.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes response)
                 ctx.Response.Close()
