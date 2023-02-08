@@ -1,17 +1,19 @@
 (defn main [db]
   {:show-toast "FIXME"})
 
-(defn make-storage [db e]
-  (if-some [e (:update-db e)]
-    (if-some [arg (:add e)]
-      (do
-        ;; (.show
-        ;;  (android.widget.Toast/makeText globalApplication text 0))
-        (assoc db :items (cons arg (or (:items db) []))))
-      (if-some [arg (:delete e)]
-        (assoc db :items (filter (fn [x] (not= x arg)) (or (:items db) [])))
-        db))
-    db))
+(defn make-storage [cofx e]
+  (let [db (:db cofx) globalApplication (:application cofx)]
+    (if-some [e (:update-db e)]
+      (if-some [arg (:add e)]
+        (do
+          ;; (.show
+          ;;  (android.widget.Toast/makeText globalApplication arg 0))
+          ;; (println "FIXME :: TEST")
+          (assoc db :items (cons arg (or (:items db) []))))
+        (if-some [arg (:delete e)]
+          (assoc db :items (filter (fn [x] (not= x arg)) (or (:items db) [])))
+          db))
+      db)))
 
 (defn local-event-handler [e]
   (case (:action e)
@@ -66,7 +68,7 @@
 
 (defn init []
   {:ui {:update (fn [e] (local-event-handler e))
-        :restore-state (fn [db e] (make-storage db e))
+        :restore-state (fn [cofx e] (make-storage cofx e))
         :view (fn [db] (view db))}
    :schedule {:period 1
               :env {:db {}}

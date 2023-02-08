@@ -18,8 +18,7 @@ type MainActivity() =
         webView.SetWebViewClient(new MyWebViewClient())
         base.SetContentView(webView)
 
-        WordsLearning.Server.run ()
-        |> ignore
+        WordsLearning.Server.run this.ApplicationContext |> ignore
 
         webView.LoadUrl "http://localhost:8080/"
 

@@ -14,6 +14,10 @@ let private extFunctions (name: string) (argCount: int) =
 
 let private findNativeFunction (name: string) cnt =
     match name with
+    | "println" ->
+        Some(fun (args: (unit -> obj) list) ->
+            let value: string = args[0]() |> DefaultFunctions.asString
+            printfn "%O" value |> box)
     | _ ->
         extFunctions name cnt
         |> Option.orElseWith (fun _ -> DefaultFunctions.findNativeFunction name ())
@@ -22,6 +26,7 @@ let private ctx =
     DefaultFunctions.defaultContext
     |> TypeResolver.registerFunc "android.widget.Toast/makeText" ([ Unknown; Unknown; Unknown ], Unknown)
     |> TypeResolver.registerFunc ".show" ([ Unknown ], Unknown)
+    |> TypeResolver.registerFunc "println" ([ Unknown ], Unknown)
 
 let private env = ExternalTypeResolver.loadDefault ()
 
@@ -38,7 +43,7 @@ module private CodeResolver =
         let client = new HttpClient()
         client.GetStringAsync appUrl
 
-let private runProgram appUrl (arg: Map<string, obj>) =
+let private runProgram (application: obj) appUrl (arg: Map<string, obj>) =
     task {
         let! code = CodeResolver.resolve appUrl
 
@@ -75,7 +80,10 @@ let private runProgram appUrl (arg: Map<string, obj>) =
         let state: Map<string, obj> = Map.empty
 
         let state =
-            globalEffects |> Seq.fold (fun db eff -> call "restore-state" [ db; eff ]) state
+            globalEffects
+            |> Seq.fold
+                (fun db eff -> call "restore-state" [ (Map.ofList [ "application", application; "db", box db ]); eff ])
+                state
 
         stateHistory.Add state
 
@@ -95,15 +103,15 @@ module Server =
         "http://192.168.20.19:8081/y2k/sms-reader/master/playground-pub/translates.clj"
     // "https://raw.githubusercontent.com/y2k/sms-reader/master/playground-pub/translates.clj"
 
-    let private safeRunProgram ctx =
+    let private safeRunProgram application ctx =
         task {
             try
-                return! runProgram appUrl ctx
+                return! runProgram application appUrl ctx
             with e ->
                 return string e
         }
 
-    let run () =
+    let run application =
         let listner = new HttpListener()
         listner.Prefixes.Add("http://localhost:8080/")
         listner.Start()
@@ -121,10 +129,10 @@ module Server =
                                 HttpUtility.ParseQueryString(formString)
                                 |> fun xs -> xs.AllKeys |> Seq.map (fun k -> k, box xs[k]) |> Map.ofSeq
 
-                            return! safeRunProgram form
+                            return! safeRunProgram application form
                         }
                     else
-                        safeRunProgram Map.empty
+                        safeRunProgram application Map.empty
 
                 do! ctx.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes response)
                 ctx.Response.Close()
