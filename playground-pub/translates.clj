@@ -1,15 +1,15 @@
 (defn main [db]
   {:show-toast "FIXME"})
 
+;; (.show
+;;  (android.widget.Toast/makeText (:application cofx) arg 0))
+;; (println "FIXME :: TEST")
+
 (defn make-storage [cofx e]
-  (let [db (:db cofx) globalApplication (:application cofx)]
+  (let [db (:db cofx)]
     (if-some [e (:update-db e)]
       (if-some [arg (:add e)]
-        (do
-          ;; (.show
-          ;;  (android.widget.Toast/makeText globalApplication arg 0))
-          ;; (println "FIXME :: TEST")
-          (assoc db :items (cons arg (or (:items db) []))))
+        (assoc db :items (cons arg (or (:items db) [])))
         (if-some [arg (:delete e)]
           (assoc db :items (filter (fn [x] (not= x arg)) (or (:items db) [])))
           db))
